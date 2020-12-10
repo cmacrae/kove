@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -18,13 +19,17 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// The one metric type we serve to surface offending manifests
-var violation = prometheus.NewGaugeVec(
-	prometheus.GaugeOpts{
-		Name: "deprecated_k8s_manifest",
-		Help: "Kubernetes manifest offending deprecation evaluation.",
-	},
-	[]string{"name", "namespace", "kind", "api_version", "ruleset"},
+var (
+	policy *string
+
+	// The one metric type we serve to surface offending manifests
+	violation = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "deprecated_k8s_manifest",
+			Help: "Kubernetes manifest offending deprecation evaluation.",
+		},
+		[]string{"name", "namespace", "kind", "api_version", "ruleset"},
+	)
 )
 
 // Just a healthcheck endpoint function
@@ -91,6 +96,9 @@ func collectManifests(ctx context.Context) ([]map[string]interface{}, error) {
 }
 
 func init() {
+	policy = flag.String("policy", "policy.rego", "Path to the policy to evaluate")
+	flag.Parse()
+
 	go func() {
 		if err := serveMetrics(3000); err != nil {
 			log.Printf("Unable to serve metric: %v\n", err)
@@ -101,7 +109,7 @@ func init() {
 func main() {
 	ctx := context.Background()
 
-	deprecations116, err := ioutil.ReadFile("policies/deprecations-116.rego")
+	policyData, err := ioutil.ReadFile(*policy)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -110,7 +118,7 @@ func main() {
 		rego.Query("data[_].main"),
 	)
 
-	rego.Module("deprecations-116.rego", string(deprecations116))(r)
+	rego.Module("policy", string(policyData))(r)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -126,25 +134,28 @@ func main() {
 			log.Fatal(err)
 		}
 
-		// log.Printf("evaluating +%v\n", input)
 		rs, err := pq.Eval(ctx, rego.EvalInput(input))
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for _, r := range rs {
-			for _, e := range r.Expressions {
-				for _, i := range e.Value.([]interface{}) {
-					m := i.(map[string]interface{})
-					violation.WithLabelValues(
-						m["Name"].(string),
-						m["Namespace"].(string),
-						m["Kind"].(string),
-						m["ApiVersion"].(string),
-						m["RuleSet"].(string),
-					).Set(1)
+		if len(rs) > 0 {
+			for _, r := range rs {
+				for _, e := range r.Expressions {
+					for _, i := range e.Value.([]interface{}) {
+						m := i.(map[string]interface{})
+						violation.WithLabelValues(
+							m["Name"].(string),
+							m["Namespace"].(string),
+							m["Kind"].(string),
+							m["ApiVersion"].(string),
+							m["RuleSet"].(string),
+						).Set(1)
+					}
 				}
 			}
+		} else {
+			log.Println("no violations found")
 		}
 	}
 }

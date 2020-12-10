@@ -30,9 +30,12 @@ It allows administrators of Kubernetes clusters to define OPA policies that they
 Some example use cases include monitoring the use of deprecated APIs, unwanted docker images, or container vars containing strings like `API_KEY`, etc.  
 Administrators can craft dashboards or alerts when such conditions are observed to better expose this information to users.
 
-## Current state
-At the moment, the initial implementation is rather crude. It simply borrows [the 1.16 deprecation policy from kube-no-trouble](https://github.com/doitintl/kube-no-trouble/blob/master/rules/deprecated-1-16.rego) as a PoC.  
-However, I plan to allow users to define their own policies by way of a ConfigMap.
+## Usage
+In its current implementation, usage is very simple. A single flag is accepted: `-policy` - the path to the policy to evaluate (defaults to `policy.rego`).  
+The intended use is that a `ConfigMap` containing the policy/policies be mounted into the exporter container for it to evaluate.
+
+Check [`example-policies`](example-policies), where you will find [the 1.16 deprecation policy from kube-no-trouble](https://github.com/doitintl/kube-no-trouble/blob/master/rules/deprecated-1-16.rego) to play around with.  
+
 
 ## Deployment
-A Helm chart is available for easy deployment at https://charts.cmacr.ae
+A Helm chart is available for easy deployment at https://charts.cmacr.ae (documentation coming soon!)
