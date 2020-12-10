@@ -2,7 +2,7 @@
   <a href="https://github.com/cmacrae/kube-opa-violation-exporter/blob/master/LICENSE">
     <img src="https://img.shields.io/github/license/cmacrae/kube-opa-violation-exporter.svg?color=a6dcef" alt="License Badge">
   </a>
-  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/compare/v0.1.0...HEAD">
+  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/compare/v1.0.0...HEAD">
     <img src="https://img.shields.io/github/commits-since/cmacrae/kube-opa-violation-exporter/latest.svg?color=ea907a" alt="Version Badge">
   </a>
   <a href="https://github.com/cmacrae/kube-opa-violation-exporter/projects/1">
