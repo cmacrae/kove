@@ -5,6 +5,9 @@
   <a href="https://github.com/cmacrae/kube-opa-violation-exporter/compare/v0.1.0...HEAD">
     <img src="https://img.shields.io/github/commits-since/cmacrae/kube-opa-violation-exporter/latest.svg?color=ea907a" alt="Version Badge">
   </a>
+  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/projects/1">
+    <img src="https://img.shields.io/badge/Project-tasks-7fdbda.svg?logo=trello" alt="GitHub Project Badge">
+  </a>
   <a href="https://hub.docker.com/r/cmacrae/kube-opa-violation-exporter">
     <img src="https://img.shields.io/badge/docker-image-2496ED.svg?logo=Docker" alt="Helm Badge">
   </a>
