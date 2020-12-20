@@ -1,0 +1,20 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: violation-deployment
+  labels:
+    app: violation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: violation
+  template:
+    metadata:
+      labels:
+        app: violation
+    spec:
+      containers:
+      - name: violation
+        image: kubernetes/pause
