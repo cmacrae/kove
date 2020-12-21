@@ -19,6 +19,11 @@
 # kube-opa-violation-exporter
 Watch your in cluster k8s manifests for OPA policy violations and export them as Prometheus metrics
 
+## Notice
+⚠️ This project is undergoing a major refactor at the moment ⚠️  
+The initial implementation was a rather crude PoC. You can track feature/improvement progress on the [project board](https://github.com/cmacrae/kube-opa-violation-exporter/projects/1) and various `refactor/` branches.  
+Expect breaking changes, version/tag/release shuffling!
+
 ## About
 [Open Policy Agent](https://www.openpolicyagent.org/) provide the fearsome-but-trustworthy  [gatekeeper](https://github.com/open-policy-agent/gatekeeper), which
 allows for [admission control](https://www.openpolicyagent.org/docs/latest/kubernetes-introduction/#how-does-it-work-with-plain-opa-and-kube-mgmt) of Kubernetes
