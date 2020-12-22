@@ -25,17 +25,40 @@ allows for [admission control](https://www.openpolicyagent.org/docs/latest/kuber
 manifests being submitted to the API. This is really nice and allows administrators to control the manifests coming in as fine-grained as they please.  
 
 However, administrators may not always want to take direct action (such as denial) on manifests arriving at the API. This is where kube-opa-violation-exporter comes in.  
-It allows administrators of Kubernetes clusters to define OPA policies that they want to flag violations for by exposing a [Prometheus](https://prometheus.io/) metric.  
+It allows administrators of Kubernetes clusters to define [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) policies that they want to flag violations for by exposing a [Prometheus](https://prometheus.io/) metric.  
 
 Some example use cases include monitoring the use of deprecated APIs, unwanted docker images, or container vars containing strings like `API_KEY`, etc.  
 Administrators can craft dashboards or alerts when such conditions are observed to better expose this information to users.
 
 ## Usage
-In its current implementation, usage is very simple. A single flag is accepted: `-policy` - the path to the policy to evaluate (defaults to `policy.rego`).  
-The intended use is that a `ConfigMap` containing the policy/policies be mounted into the exporter container for it to evaluate.
+`ConfigMap` objects containing the Rego policy/policies and the application configuration can be mounted to configure what you want to evaluate and how you want to evaluate it.
 
-Check [`example-policies`](example-policies), where you will find [the 1.16 deprecation policy from kube-no-trouble](https://github.com/doitintl/kube-no-trouble/blob/master/rules/deprecated-1-16.rego) to play around with.  
+### Options
+| Option   | Default       | Description                    |
+|:---------|:--------------|:-------------------------------|
+| `config` | `config.yaml` | Path to the configuration      |
+| `policy` | `policy.rego` | Path to the policy to evaluate |
 
+#### `config`
+Configuration of the exporter is very simple at the moment. A YAML manifest can be provided in the following format to describe what objects you want to watch for evaluation:
+```yaml
+objects:
+  - group: apps
+    version: v1
+    resource: deployments
+  - group: apps
+    version: v1
+    resource: daemonsets
+  - group: apps
+    version: v1
+    resource: replicasets
+```
+
+As you can see, `objects` is a list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions.  
+This example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects.
+
+#### `policy`
+Check [`example/policies`](example/policies), where you will find [the 1.16 deprecation policy from kube-no-trouble](https://github.com/doitintl/kube-no-trouble/blob/master/rules/deprecated-1-16.rego) and a simplistic "bad label" policy to play around with.  
 
 ## Deployment
 A Helm chart is available for easy deployment at https://charts.cmacr.ae (documentation coming soon!)

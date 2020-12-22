@@ -5,16 +5,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
-
-	"io/ioutil"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -25,6 +23,8 @@ import (
 
 var (
 	policy *string
+	configPath *string
+	config *Config
 
 	// The one metric type we serve to surface offending manifests
 	violation = prometheus.NewGaugeVec(
@@ -54,10 +54,11 @@ func serveMetrics(port int) error {
 
 func init() {
 	policy = flag.String("policy", "policy.rego", "Path to the policy to evaluate")
+	configPath = flag.String("config", "config.yaml", "Path to the configuration")
 
 	go func() {
 		if err := serveMetrics(3000); err != nil {
-			klog.Infof("Unable to serve metric: %v\n", err.Error())
+			klog.Infof("unable to serve metric: %v\n", err.Error())
 		}
 	}()
 }
@@ -65,67 +66,63 @@ func init() {
 func main() {
 	flag.Parse()
 
+	config := getConfig()
+
 	// TODO: Move back to incluster when done
 	// cfg, err := rest.InClusterConfig()
 	// if err != nil {
-	// 	klog.Fatalf("Error building kubeconfig: %s", err.Error())
+	// 	klog.Fatalf("error building kubeconfig: %s", err.Error())
 	// }
-
-	// clientSet, err := kubernetes.NewForConfig(cfg)
-	// if err != nil {
-	// 	klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
-	// }
-	// TODO: Move back to incluster when done
-
 	cfg, err := clientcmd.BuildConfigFromFlags("", "/Users/cmacrae/.kube/config")
 	if err != nil {
-		klog.Fatalf("Error building kubeconfig: %s", err.Error())
+		klog.Fatalf("error building kubeconfig: %s", err.Error())
 	}
+
+	// TODO: Move back to incluster when done
 
 	clientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+		klog.Fatalf("error building kubernetes clientset: %s", err.Error())
 	}
 
 	klog.InitFlags(nil)
 
 	factory := informers.NewSharedInformerFactory(clientSet, time.Second*30)
 
-	inf, err := factory.ForResource(schema.GroupVersionResource{
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "deployments"})
-	// Resource: "replicasets"})
-
-	if err != nil {
-		klog.Fatalf("Error building generic informer: %s", err.Error())
+	var informers []cache.SharedIndexInformer
+	for _, obj := range config.Objects {
+		o, err := factory.ForResource(obj)
+		if err != nil {
+			klog.Fatalf("error building generic informer: %s", err.Error())
+		}
+		klog.Infof("watching %s...", obj.Resource)
+		informers = append(informers, o.Informer())
 	}
-
-	informer := inf.Informer()
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	defer utilruntime.HandleCrash()
-
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: onAdd,
-		// DeleteFunc: onDelete, TODO
-		UpdateFunc: onUpdate,
-	})
-
-	klog.Info("Starting informer")
-	defer utilruntime.HandleCrash()
 	factory.Start(stopCh)
-	go informer.Run(stopCh)
+
+	klog.Info("starting informers")
+	for _, i := range informers {
+		i.AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc: onAdd,
+			// DeleteFunc: onDelete, TODO
+			UpdateFunc: onUpdate,
+		})
+		go i.Run(stopCh)
+	}
+
 	<-stopCh
-	klog.Info("Shutting down workers")
+	klog.Info("shutting down informers")
 }
 
 func onAdd(obj interface{}) {
 	r := obj.(metav1.Object)
 	namespace := r.GetNamespace()
 	name := r.GetName()
-	klog.Infof("Evaluating: %s/%s", namespace, name)
+	klog.Infof("evaluating: %s/%s", namespace, name)
 	evaluate(r.GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"], namespace, name)
 }
 
@@ -174,7 +171,7 @@ func evaluate(jsonManifest, ns, name string) error {
 		for _, e := range r.Expressions {
 			for _, i := range e.Value.([]interface{}) {
 				m := i.(map[string]interface{})
-				klog.Infof("Violation: %s/%s", ns, name)
+				klog.Infof("violation: %s/%s", ns, name)
 				violation.WithLabelValues(
 					m["Name"].(string),
 					m["Namespace"].(string),

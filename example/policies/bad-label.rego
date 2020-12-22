@@ -2,7 +2,7 @@ package bad
 
 labels["app"] = ["violation"]
 
-types = ["Deployment", "StatefulSet"]
+types = ["Deployment", "StatefulSet", "DaemonSet", "ReplicaSet"]
 
 main[return] {
 	r := input

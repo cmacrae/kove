@@ -1,0 +1,10 @@
+objects:
+  - group: apps
+    version: v1
+    resource: deployments
+  - group: apps
+    version: v1
+    resource: daemonsets
+  - group: apps
+    version: v1
+    resource: replicasets
