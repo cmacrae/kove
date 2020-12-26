@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
@@ -116,17 +116,12 @@ func main() {
 }
 
 func onAdd(obj interface{}) {
-	r := obj.(metav1.Object)
+	r := obj.(*unstructured.Unstructured)
 	namespace := r.GetNamespace()
 	name := r.GetName()
 
-	j, err := json.Marshal(obj)
-	if err != nil {
-		klog.Info(err.Error())
-	}
-
 	klog.Infof("evaluating: %s/%s", namespace, name)
-	if err := evaluate(string(j), namespace, name); err != nil {
+	if err := evaluate(r, namespace, name); err != nil {
 		klog.Infof("unable to evaluate %s/%s: %s", namespace, name, err.Error())
 	}
 }
@@ -139,13 +134,7 @@ func onUpdate(oldObj, newObj interface{}) {
 	}
 }
 
-func evaluate(jsonManifest, ns, name string) error {
-	var manifest map[string]interface{}
-
-	if err := json.Unmarshal([]byte(jsonManifest), &manifest); err != nil {
-		return fmt.Errorf("failed to parse 'last-applied-configuration' annotation of resource %s/%s: %v", ns, name, err)
-	}
-
+func evaluate(obj *unstructured.Unstructured, ns, name string) error {
 	ctx := context.Background()
 
 	policyData, err := ioutil.ReadFile(*policy)
@@ -167,7 +156,7 @@ func evaluate(jsonManifest, ns, name string) error {
 		klog.Fatal(err.Error())
 	}
 
-	rs, err := pq.Eval(ctx, rego.EvalInput(manifest))
+	rs, err := pq.Eval(ctx, rego.EvalInput(obj.Object))
 	if err != nil {
 		klog.Fatal(err.Error())
 	}
