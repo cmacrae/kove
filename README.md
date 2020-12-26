@@ -40,8 +40,9 @@ Administrators can craft dashboards or alerts when such conditions are observed 
 | `policy` | `policy.rego` | Path to the policy to evaluate |
 
 #### `config`
-Configuration of the exporter is very simple at the moment. A YAML manifest can be provided in the following format to describe what objects you want to watch for evaluation:
+Configuration of the exporter is very simple at the moment. A YAML manifest can be provided in the following format to describe which objects in which namespace you want to watch for evaluation:
 ```yaml
+namespace: default
 objects:
   - group: apps
     version: v1
@@ -55,7 +56,7 @@ objects:
 ```
 
 As you can see, `objects` is a list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions.  
-This example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects.
+This example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace (leave out this option to monitor all namespaces).
 
 #### `policy`
 Check [`example/policies`](example/policies), where you will find [the 1.16 deprecation policy from kube-no-trouble](https://github.com/doitintl/kube-no-trouble/blob/master/rules/deprecated-1-16.rego) and a simplistic "bad label" policy to play around with.  

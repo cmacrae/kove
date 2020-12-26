@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	Objects []schema.GroupVersionResource `yaml:"objects"`
+	Namespace string                        `yaml:"namespace, omitempty"`
+	Objects   []schema.GroupVersionResource `yaml:"objects, omitempty"`
 }
 
 func getConfig() *Config {

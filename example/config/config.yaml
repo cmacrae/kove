@@ -1,3 +1,4 @@
+namespace: default
 objects:
   - group: apps
     version: v1

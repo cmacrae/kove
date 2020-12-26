@@ -7,24 +7,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
+	"os"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 )
 
 var (
-	policy *string
+	policy     *string
 	configPath *string
-	config *Config
+	config     *Config
 
 	// The one metric type we serve to surface offending manifests
 	violation = prometheus.NewGaugeVec(
@@ -65,36 +66,32 @@ func init() {
 
 func main() {
 	flag.Parse()
-
+	klog.InitFlags(nil)
 	config := getConfig()
 
-	// TODO: Move back to incluster when done
-	// cfg, err := rest.InClusterConfig()
-	// if err != nil {
-	// 	klog.Fatalf("error building kubeconfig: %s", err.Error())
-	// }
-	cfg, err := clientcmd.BuildConfigFromFlags("", "/Users/cmacrae/.kube/config")
+	cfg, err := rest.InClusterConfig()
+	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
+		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	}
 	if err != nil {
-		klog.Fatalf("error building kubeconfig: %s", err.Error())
+		klog.Fatalf("unable to retrieve kube config: %s", err.Error())
 	}
 
-	// TODO: Move back to incluster when done
-
-	clientSet, err := kubernetes.NewForConfig(cfg)
+	dc, err := dynamic.NewForConfig(cfg)
 	if err != nil {
-		klog.Fatalf("error building kubernetes clientset: %s", err.Error())
+		klog.Fatalf("unable to construct kube config: %s", err.Error())
 	}
 
-	klog.InitFlags(nil)
+	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dc, 0, config.Namespace, nil)
 
-	factory := informers.NewSharedInformerFactory(clientSet, time.Second*30)
-
+	if config.Namespace != "" {
+		klog.Infof("monitoring '%s' namespace...", config.Namespace)
+	} else {
+		klog.Info("monitoring all namespaces...")
+	}
 	var informers []cache.SharedIndexInformer
 	for _, obj := range config.Objects {
-		o, err := factory.ForResource(obj)
-		if err != nil {
-			klog.Fatalf("error building generic informer: %s", err.Error())
-		}
+		o := factory.ForResource(obj)
 		klog.Infof("watching %s...", obj.Resource)
 		informers = append(informers, o.Informer())
 	}
@@ -122,8 +119,16 @@ func onAdd(obj interface{}) {
 	r := obj.(metav1.Object)
 	namespace := r.GetNamespace()
 	name := r.GetName()
+
+	j, err := json.Marshal(obj)
+	if err != nil {
+		klog.Info(err.Error())
+	}
+
 	klog.Infof("evaluating: %s/%s", namespace, name)
-	evaluate(r.GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"], namespace, name)
+	if err := evaluate(string(j), namespace, name); err != nil {
+		klog.Infof("unable to evaluate %s/%s: %s", namespace, name, err.Error())
+	}
 }
 
 func onUpdate(oldObj, newObj interface{}) {
