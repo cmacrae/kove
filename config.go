@@ -10,8 +10,9 @@ import (
 
 // config outlines which namespace to watch objects in and which objects to watch
 type config struct {
-	Namespace string                        `yaml:"namespace, omitempty"`
-	Objects   []schema.GroupVersionResource `yaml:"objects, omitempty"`
+	Namespace      string                        `yaml:"namespace, omitempty"`
+	Objects        []schema.GroupVersionResource `yaml:"objects, omitempty"`
+	IgnoreChildren bool                          `yaml:"ignore_children, omitempty"`
 }
 
 // getConfig returns an empty config object
@@ -26,10 +27,14 @@ func getConfig() *config {
 	}
 
 	conf := &config{}
+	// This isn't properly unmarshalled, so we explicitly set it here
+	conf.IgnoreChildren = viper.GetBool("ignore_children")
 	if err := viper.Unmarshal(conf); err != nil {
 		klog.ErrorS(err, "invalid config")
 		os.Exit(1)
 	}
+
+	klog.Info(conf)
 
 	return conf
 }

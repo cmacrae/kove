@@ -43,6 +43,7 @@ Administrators can craft dashboards or alerts when such conditions are observed 
 Configuration of the exporter is very simple at the moment. A YAML manifest can be provided in the following format to describe which objects in which namespace you want to watch for evaluation:
 ```yaml
 namespace: default
+ignore_children: true
 objects:
   - group: apps
     version: v1
@@ -55,8 +56,13 @@ objects:
     resource: replicasets
 ```
 
-As you can see, `objects` is a list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions.  
-This example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace (leave out this option to monitor all namespaces).
+| Option            | Default | Description                                                                                                                                          |
+|:------------------|:--------|:-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `namespace`       | `""`    | Kubernetes namespace to watch objects in. If empty or omitted, all namespaces will be observed                                                       |
+| `ignore_children` | `false` | Boolean that decides if objects spawned as part of a user managed object (such as a ReplicaSet from a user managed Deployment) should be evaluated   |
+| `objects`         | none    | A list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions to observe and evaluate |
+
+The example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace, but ignore child objects.
 
 #### `policy`
 Check [`example/policies`](example/policies), where you will find [the 1.16 deprecation policy from kube-no-trouble](https://github.com/doitintl/kube-no-trouble/blob/master/rules/deprecated-1-16.rego) and a simplistic "bad label" policy to play around with.  

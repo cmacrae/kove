@@ -139,6 +139,9 @@ func main() {
 // onAdd evaluates the object
 func onAdd(obj interface{}) {
 	r := obj.(*unstructured.Unstructured)
+	if conf.IgnoreChildren && hasOwnerRefs(r){
+		return
+	}
 	kind := strings.ToLower(r.GetKind())
 
 	klog.InfoS("evaluating object", kind, klog.KObj(r))
@@ -149,6 +152,9 @@ func onAdd(obj interface{}) {
 
 // onUpdate evaluates the object when a legitimate change is observed
 func onUpdate(oldObj, newObj interface{}) {
+	if conf.IgnoreChildren && hasOwnerRefs(newObj.(*unstructured.Unstructured)){
+		return
+	}
 	objDiff, err := diff.Diff(oldObj, newObj)
 	if err != nil {
 		klog.ErrorS(err, "unable to diff object generations")
@@ -169,6 +175,9 @@ func onUpdate(oldObj, newObj interface{}) {
 // onDelete deletes object associated metrics
 func onDelete(obj interface{}) {
 	r := obj.(*unstructured.Unstructured)
+	if conf.IgnoreChildren && hasOwnerRefs(r){
+		return
+	}
 	klog.InfoS("object deleted", r.GetKind(), klog.KObj(r))
 	deleteMetric(r)
 }
@@ -215,6 +224,17 @@ func contains(l []string, s string) bool {
 		if v == s {
 			return true
 		}
+	}
+	return false
+}
+
+// hasOwnerRefs checks if an object has any owner references.
+// This is useful for circumstances where you may wish to avoid child objects.
+func hasOwnerRefs(obj *unstructured.Unstructured) bool {
+	ors := obj.GetOwnerReferences()
+	if len(ors) > 0  {
+		klog.InfoS("ignoring child object", strings.ToLower(obj.GetKind()), klog.KObj(obj))
+		return true
 	}
 	return false
 }

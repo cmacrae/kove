@@ -1,4 +1,5 @@
 namespace: default
+ignore_children: true
 objects:
   - group: apps
     version: v1
