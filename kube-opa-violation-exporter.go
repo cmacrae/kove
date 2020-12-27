@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/prometheus/client_golang/prometheus"
@@ -19,7 +20,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 )
 
 var (
@@ -59,7 +60,8 @@ func init() {
 
 	go func() {
 		if err := serveMetrics(3000); err != nil {
-			klog.Infof("unable to serve metric: %v\n", err.Error())
+			klog.ErrorS(err, "unable to serve metric")
+			os.Exit(1)
 		}
 	}()
 }
@@ -74,25 +76,27 @@ func main() {
 		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 	}
 	if err != nil {
-		klog.Fatalf("unable to retrieve kube config: %s", err.Error())
+		klog.ErrorS(err, "unable to retrieve kube config")
+		os.Exit(1)
 	}
 
 	dc, err := dynamic.NewForConfig(cfg)
 	if err != nil {
-		klog.Fatalf("unable to construct kube config: %s", err.Error())
+		klog.ErrorS(err, "unable to construct kube config")
+		os.Exit(1)
 	}
 
 	factory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dc, 0, config.Namespace, nil)
 
 	if config.Namespace != "" {
-		klog.Infof("monitoring '%s' namespace...", config.Namespace)
+		klog.InfoS("monitoring '" + config.Namespace + "' namespace...")
 	} else {
-		klog.Info("monitoring all namespaces...")
+		klog.InfoS("monitoring all namespaces...")
 	}
 	var informers []cache.SharedIndexInformer
 	for _, obj := range config.Objects {
 		o := factory.ForResource(obj)
-		klog.Infof("watching %s...", obj.Resource)
+		klog.InfoS("watching " + obj.Resource + "...")
 		informers = append(informers, o.Informer())
 	}
 
@@ -101,7 +105,7 @@ func main() {
 	defer utilruntime.HandleCrash()
 	factory.Start(stopCh)
 
-	klog.Info("starting informers")
+	klog.InfoS("starting informers...")
 	for _, i := range informers {
 		i.AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc: onAdd,
@@ -112,20 +116,20 @@ func main() {
 	}
 
 	<-stopCh
-	klog.Info("shutting down informers")
+	klog.InfoS("shutting down informers")
 }
 
 func onAdd(obj interface{}) {
 	r := obj.(*unstructured.Unstructured)
-	namespace := r.GetNamespace()
-	name := r.GetName()
+	kind := strings.ToLower(r.GetKind())
 
-	klog.Infof("evaluating: %s/%s", namespace, name)
-	if err := evaluate(r, namespace, name); err != nil {
-		klog.Infof("unable to evaluate %s/%s: %s", namespace, name, err.Error())
+	klog.InfoS("evaluating object", kind, klog.KObj(r))
+	if err := evaluate(r); err != nil {
+		klog.ErrorS(err, "unable to evaluate", kind, klog.KObj(r), )
 	}
 }
 
+// TODO: Write this properly...
 func onUpdate(oldObj, newObj interface{}) {
 	o := oldObj.(metav1.Object).GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
 	n := newObj.(metav1.Object).GetAnnotations()["kubectl.kubernetes.io/last-applied-configuration"]
@@ -134,12 +138,12 @@ func onUpdate(oldObj, newObj interface{}) {
 	}
 }
 
-func evaluate(obj *unstructured.Unstructured, ns, name string) error {
+func evaluate(obj *unstructured.Unstructured) error {
 	ctx := context.Background()
 
 	policyData, err := ioutil.ReadFile(*policy)
 	if err != nil {
-		klog.Fatal(err.Error())
+		klog.ErrorS(err, "unable to read policy")
 	}
 
 	r := rego.New(
@@ -147,25 +151,22 @@ func evaluate(obj *unstructured.Unstructured, ns, name string) error {
 	)
 
 	rego.Module("policy", string(policyData))(r)
-	if err != nil {
-		klog.Fatal(err.Error())
-	}
 
 	pq, err := r.PrepareForEval(ctx)
 	if err != nil {
-		klog.Fatal(err.Error())
+		klog.ErrorS(err, "unable to prepare query from policy data")
 	}
 
 	rs, err := pq.Eval(ctx, rego.EvalInput(obj.Object))
 	if err != nil {
-		klog.Fatal(err.Error())
+		klog.ErrorS(err, "unable to evaluate prepared query")
 	}
 
 	for _, r := range rs {
 		for _, e := range r.Expressions {
 			for _, i := range e.Value.([]interface{}) {
 				m := i.(map[string]interface{})
-				klog.Infof("violation: %s/%s", ns, name)
+				klog.InfoS("violation observed", strings.ToLower(obj.GetKind()), klog.KObj(obj), "ruleset", m["RuleSet"].(string))
 				violation.WithLabelValues(
 					m["Name"].(string),
 					m["Namespace"].(string),

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
+
 	"github.com/spf13/viper"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/klog"
+	klog "k8s.io/klog/v2"
 )
 
 type Config struct {
@@ -17,12 +19,14 @@ func getConfig() *Config {
 	viper.AddConfigPath(".")
 	viper.SetConfigName(*configPath)
 	if err := viper.ReadInConfig(); err != nil {
-		klog.Fatalf("unable to read config: %s", err.Error())
+		klog.ErrorS(err, "unable to read config")
+		os.Exit(1)
 	}
 
 	conf := &Config{}
 	if err := viper.Unmarshal(conf); err != nil {
-		klog.Fatalf("invalid config: %s", err.Error())
+		klog.ErrorS(err, "invalid config")
+		os.Exit(1)
 	}
 
 	return conf
