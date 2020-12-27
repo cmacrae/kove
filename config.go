@@ -8,12 +8,14 @@ import (
 	klog "k8s.io/klog/v2"
 )
 
-type Config struct {
+// config outlines which namespace to watch objects in and which objects to watch
+type config struct {
 	Namespace string                        `yaml:"namespace, omitempty"`
 	Objects   []schema.GroupVersionResource `yaml:"objects, omitempty"`
 }
 
-func getConfig() *Config {
+// getConfig returns an empty config object
+func getConfig() *config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
@@ -23,7 +25,7 @@ func getConfig() *Config {
 		os.Exit(1)
 	}
 
-	conf := &Config{}
+	conf := &config{}
 	if err := viper.Unmarshal(conf); err != nil {
 		klog.ErrorS(err, "invalid config")
 		os.Exit(1)
