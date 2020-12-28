@@ -26,7 +26,7 @@ import (
 var (
 	policy     *string
 	configPath *string
-	conf     *config
+	conf       *config
 	ruleSet    string
 
 	// The one metric type we serve to surface offending manifests
@@ -251,7 +251,7 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 	}
 
 	// Prepare a rego object for use with our query & policy data
-	r := rego.New(rego.Query("data[_].main"))
+	r := rego.New(rego.Query(conf.RegoQuery))
 	rego.Module("policy", string(policyData))(r)
 	pq, err := r.PrepareForEval(ctx)
 	if err != nil {

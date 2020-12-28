@@ -12,10 +12,11 @@ import (
 type config struct {
 	Namespace      string                        `yaml:"namespace, omitempty"`
 	Objects        []schema.GroupVersionResource `yaml:"objects, omitempty"`
-	IgnoreChildren bool                          `yaml:"ignore_children, omitempty"`
+	IgnoreChildren bool                          `yaml:"ignoreChildren, omitempty"`
+	RegoQuery      string                        `yaml:"regoQuery, omitempty"`
 }
 
-// getConfig returns an empty config object
+// getConfig returns a default config object
 func getConfig() *config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
@@ -27,14 +28,13 @@ func getConfig() *config {
 	}
 
 	conf := &config{}
-	// This isn't properly unmarshalled, so we explicitly set it here
-	conf.IgnoreChildren = viper.GetBool("ignore_children")
+	if conf.RegoQuery == "" {
+		conf.RegoQuery = "data[_].main"
+	}
 	if err := viper.Unmarshal(conf); err != nil {
 		klog.ErrorS(err, "invalid config")
 		os.Exit(1)
 	}
-
-	klog.Info(conf)
 
 	return conf
 }
