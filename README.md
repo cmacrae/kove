@@ -14,6 +14,9 @@
   <a href="https://charts.cmacr.ae/#kube-opa-violation-exporter">
     <img src="https://img.shields.io/badge/helm-chart-277A9F.svg?logo=Helm" alt="Helm Badge">
   </a>
+  <a href="https://goreportcard.com/report/github.com/cmacrae/kube-opa-violation-exporter">
+    <img src="https://goreportcard.com/badge/github.com/cmacrae/kube-opa-violation-exporter" alt="Go Report Card">
+  </a>
 </p>
 
 # kube-opa-violation-exporter
