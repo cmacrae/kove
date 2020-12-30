@@ -21,6 +21,8 @@ func getConfig() *config {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc")
+	viper.AddConfigPath("/config")
 	viper.SetConfigName(*configPath)
 	if err := viper.ReadInConfig(); err != nil {
 		klog.ErrorS(err, "unable to read config")
