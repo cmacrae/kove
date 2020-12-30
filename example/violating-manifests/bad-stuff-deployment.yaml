@@ -2,9 +2,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: violation-deployment
+  name: violation
   labels:
     app: violation
+    secure: nope
 spec:
   replicas: 1
   selector:
