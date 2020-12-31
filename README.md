@@ -33,9 +33,12 @@ It allows administrators of Kubernetes clusters to define [Rego](https://www.ope
 Some example use cases include monitoring the use of deprecated APIs, unwanted docker images, or container vars containing strings like `API_KEY`, etc.  
 Administrators can craft dashboards or alerts when such conditions are observed to better expose this information to users.
 
-### Metrics
-At the moment, a single gauge metric is exposed:
-- `policy_violation`: Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, and `ruleset`
+## Metrics
+| Metric                         | Description                                                                                                                                              |
+|:-------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `opa_policy_violation`         | Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, and `ruleset` |
+| `opa_policy_violations_total`  | Total number of policy violations observed                                                                                                               |
+| `opa_object_evaluations_total` | Total number object evaluations conducted                                                                                                                |
 
 ## Usage
 `ConfigMap` objects containing the Rego policy/policies and the application configuration can be mounted to configure what you want to evaluate and how you want to evaluate it.

@@ -29,13 +29,27 @@ var (
 	conf       *config
 	ruleSet    string
 
-	// The one metric type we serve to surface offending manifests
+	// Metric type we serve to surface offending objects
 	violation = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "policy_violation",
-			Help: "Kubernetes manifest violating policy evaluation.",
+			Name: "opa_policy_violation",
+			Help: "Kubernetes object violating policy evaluation.",
 		},
 		[]string{"name", "namespace", "kind", "api_version", "ruleset"},
+	)
+
+	totalViolations = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opa_policy_violations_total",
+			Help: "Total count of policy violations observed.",
+		},
+	)
+
+	totalObjectEvaluations = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "opa_object_evaluations_total",
+			Help: "Total count of Kubernetes object evaluations conducted.",
+		},
 	)
 )
 
@@ -47,6 +61,8 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 // Web server helper
 func serveMetrics(port int) error {
 	prometheus.MustRegister(violation)
+	prometheus.MustRegister(totalViolations)
+	prometheus.MustRegister(totalObjectEvaluations)
 
 	http.HandleFunc("/healthz", healthz)
 	http.Handle("/metrics", promhttp.Handler())
@@ -283,6 +299,9 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 					m["ApiVersion"].(string),
 					ruleSet,
 				).Set(1)
+
+				// Record the violation in the total counter
+				totalViolations.Inc()
 			}
 		}
 	}
@@ -293,6 +312,9 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 	if (existing && !vio) {
 		deleteMetric(obj)
 	}
+
+	// Record the evaluation in the total counter
+	totalObjectEvaluations.Inc()
 
 	return nil
 }

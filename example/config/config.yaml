@@ -1,5 +1,6 @@
 namespace: default
-ignore_children: true
+ignoreChildren: true
+regoQuery: "data[_].bad"
 objects:
   - group: apps
     version: v1
