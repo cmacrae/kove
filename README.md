@@ -2,7 +2,7 @@
   <a href="https://github.com/cmacrae/kube-opa-violation-exporter/blob/master/LICENSE">
     <img src="https://img.shields.io/github/license/cmacrae/kube-opa-violation-exporter.svg?color=a6dcef" alt="License Badge">
   </a>
-  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/compare/v1.0.0...HEAD">
+  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/compare/v0.1.0...HEAD">
     <img src="https://img.shields.io/github/commits-since/cmacrae/kube-opa-violation-exporter/latest.svg?color=ea907a" alt="Version Badge">
   </a>
   <a href="https://github.com/cmacrae/kube-opa-violation-exporter/projects/1">
@@ -21,11 +21,6 @@
 
 # kube-opa-violation-exporter
 Watch your in cluster Kubernetes manifests for OPA policy violations and export them as Prometheus metrics
-
-## Notice
-⚠️ This project is undergoing a major refactor at the moment ⚠️  
-The initial implementation was a rather crude PoC. You can track feature/improvement progress on the [project board](https://github.com/cmacrae/kube-opa-violation-exporter/projects/1) and various `refactor/` branches.  
-Expect breaking changes, version/tag/release shuffling!
 
 ## About
 [Open Policy Agent](https://www.openpolicyagent.org/) provide the fearsome-but-trustworthy  [gatekeeper](https://github.com/open-policy-agent/gatekeeper), which
