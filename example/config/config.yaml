@@ -1,6 +1,8 @@
 namespace: default
 ignoreChildren: true
 regoQuery: "data[_].bad"
+policies:
+  - example/policies
 objects:
   - group: apps
     version: v1

@@ -34,20 +34,20 @@ Some example use cases include monitoring the use of deprecated APIs, unwanted d
 Administrators can craft dashboards or alerts when such conditions are observed to better expose this information to users.
 
 ## Metrics
-| Metric                         | Description                                                                                                                                              |
-|:-------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `opa_policy_violation`         | Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, and `ruleset` |
-| `opa_policy_violations_total`  | Total number of policy violations observed                                                                                                               |
-| `opa_object_evaluations_total` | Total number object evaluations conducted                                                                                                                |
+| Metric                                 | Description                                                                                                                                              |
+|:---------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `opa_policy_violation`                 | Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, and `ruleset` |
+| `opa_policy_violations_total`          | Total number of policy violations observed                                                                                                               |
+| `opa_policy_violations_resolved_total` | Total number of policy violation resolutions observed                                                                                                   |
+| `opa_object_evaluations_total`         | Total number object evaluations conducted                                                                                                                |
 
 ## Usage
 `ConfigMap` objects containing the Rego policy/policies and the application configuration can be mounted to configure what you want to evaluate and how you want to evaluate it.
 
 ### Options
-| Option   | Default       | Description                    |
-|:---------|:--------------|:-------------------------------|
-| `config` | `config.yaml` | Path to the configuration      |
-| `policy` | `policy.rego` | Path to the policy to evaluate |
+| Option   | Default | Description                                                                                             |
+|:---------|:--------|:--------------------------------------------------------------------------------------------------------|
+| `config` | `""`    | Path to the config file. If not set, this will look for the file `config.yaml` in the current directory |
 
 #### `config`
 Configuration of the exporter is very simple at the moment. A YAML manifest can be provided in the following format to describe how and what you want to watch for evaluation:
@@ -55,6 +55,8 @@ Configuration of the exporter is very simple at the moment. A YAML manifest can 
 namespace: default
 ignoreChildren: true
 regoQuery: data.pkgname.blah
+policies:
+  - example/policies
 objects:
   - group: apps
     version: v1
@@ -72,12 +74,16 @@ objects:
 | `namespace`      | `""`           | Kubernetes namespace to watch objects in. If empty or omitted, all namespaces will be observed                                                       |
 | `ignoreChildren` | `false`        | Boolean that decides if objects spawned as part of a user managed object (such as a ReplicaSet from a user managed Deployment) should be evaluated   |
 | `regoQuery`      | `data[_].main` | The Rego query to read evaluation results from. This should match the expression in your policy that surfaces violation data                         |
-| `objects`        | none           | A list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions to observe and evaluate |
+| `policies`       | none           | A list of files/directories containing Rego policies to evaluate objects against                                                                     |
+| `objects`        | none           | A list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions to observe and evaluate. If empty **all** object kinds will be evaluated (apart from those defined in `ignoreKinds`) |
+| `ignoreKinds`    | `[ apiservice, endpoint, endpoints, endpointslice, event, flowschema, lease, limitrange, namespace, prioritylevelconfiguration, replicationcontroller, runtimeclass ]` | A list of object kinds to ignore for evaluation |
+| `ignoreDifferingPaths` | `[ metadata/resourceVersion, metadata/managedFields/0/time, status/observedGeneration ]` | A list of JSON paths to ignore for reevaluation when a change in the monitored object is observed |
 
-The above example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace, but ignore child objects, yielding its results from the `data.pkgname.blah` expression in the provided policy.
+The above example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace, but ignore child objects, yielding its results from the `data.pkgname.blah` expression in the provided policy.  
 
-#### `policy`
-There are some important semantics to understand when crafting your Rego policies for use with this exporter. The expression that you evaluate from your query must return structured data with the following fields:
+#### `policies`
+There are some important semantics to understand when crafting your Rego policies for use with this exporter.  
+The expression that you evaluate from your query must return structured data with the following fields:  
 - `Name`: The name of the object being evaluated
 - `Namespace`: The namespace in which the object you're evaluating resides
 - `Kind`: The kind of object being evaluated
@@ -86,6 +92,7 @@ There are some important semantics to understand when crafting your Rego policie
 
 The above data are provided by the exporter when it evaluates an object, with the exception of `RuleSet` which should be defined in the Rego expression.
 For instance, if we were to evaluate the query `data.example.bad`, our policy may look something like [this](example/policies/bad-stuff.rego):
+
 ```rego
 package example
 
