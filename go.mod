@@ -3,12 +3,11 @@ module github.com/cmacrae/kube-opa-violation-exporter
 go 1.14
 
 require (
-	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/open-policy-agent/opa v0.24.0
-	github.com/prometheus/client_golang v0.0.0-20181025174421-f30f42803563
-	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
-	k8s.io/apimachinery v0.19.4
-	k8s.io/client-go v0.19.4
-	k8s.io/klog v1.0.0 // indirect
-	k8s.io/utils v0.0.0-20201015054608-420da100c033 // indirect
+	github.com/open-policy-agent/opa v0.25.2
+	github.com/prometheus/client_golang v1.9.0
+	github.com/r3labs/diff/v2 v2.9.1
+	github.com/spf13/viper v1.7.1
+	k8s.io/apimachinery v0.20.1
+	k8s.io/client-go v0.20.1
+	k8s.io/klog/v2 v2.4.0
 )

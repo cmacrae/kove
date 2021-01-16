@@ -11,7 +11,7 @@ RUN adduser \
 	kube-opa-violation-exporter
 
 WORKDIR /kube-opa-violation-exporter
-COPY kube-opa-violation-exporter.go go.mod go.sum /kube-opa-violation-exporter/
+COPY kube-opa-violation-exporter.go config.go go.mod go.sum /kube-opa-violation-exporter/
 RUN go mod download
 RUN go mod verify
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o kube-opa-violation-exporter
