@@ -58,7 +58,7 @@ jobs:
           push: ${{ startsWith(github.ref, 'refs/tags/') }}
           tags: |
             ${{ github.repository }}:${{ env.RELEASE_VERSION }}
-            ghcr.io/${{ github.repository }}:${{ env.RELEASE_VERSION }}
+            ghcr.io/${{ github.repository }}/exporter:${{ env.RELEASE_VERSION }}
 
       - name: Update DockerHub repo description
         uses: peter-evans/dockerhub-description@v2
