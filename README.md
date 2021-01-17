@@ -8,14 +8,25 @@
   <a href="https://github.com/cmacrae/kube-opa-violation-exporter/projects/1">
     <img src="https://img.shields.io/badge/Project-tasks-7fdbda.svg?logo=trello" alt="GitHub Project Badge">
   </a>
-  <a href="https://hub.docker.com/r/cmacrae/kube-opa-violation-exporter">
-    <img src="https://img.shields.io/badge/docker-image-2496ED.svg?logo=Docker" alt="Helm Badge">
-  </a>
-  <a href="https://charts.cmacr.ae/#kube-opa-violation-exporter">
-    <img src="https://img.shields.io/badge/helm-chart-277A9F.svg?logo=Helm" alt="Helm Badge">
-  </a>
   <a href="https://goreportcard.com/report/github.com/cmacrae/kube-opa-violation-exporter">
     <img src="https://goreportcard.com/badge/github.com/cmacrae/kube-opa-violation-exporter" alt="Go Report Card">
+  </a>
+</p>
+<p align="center">
+  <a href="https://github.com/users/cmacrae/packages/container/package/kube-opa-violation-exporter">
+    <img src="https://img.shields.io/badge/GHCR-image-87DCC0.svg?logo=GitHub" alt="GHCR Badge">
+  </a>
+  <a href="https://hub.docker.com/r/cmacrae/kube-opa-violation-exporter">
+    <img src="https://img.shields.io/badge/DockerHub-image-2496ED.svg?logo=Docker" alt="DockerHub Badge">
+  </a>
+  <a href="https://opencontainers.org/">
+    <img src="https://img.shields.io/badge/OCI-compliant-262261.svg?logo=open-containers-initiative" alt="OCI Badge">
+  </a>
+  <a href="https://charts.cmacr.ae/#kube-opa-violation-exporter">
+    <img src="https://img.shields.io/badge/Helm-chart-277A9F.svg?logo=Helm" alt="Helm Badge">
+  </a>
+  <a href="https://snyk.io">
+    <img src="https://img.shields.io/badge/Snyk-protected-4C4A73.svg?logo=snyk" alt="Snyk Badge">
   </a>
 </p>
 
