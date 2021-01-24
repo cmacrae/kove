@@ -1,4 +1,4 @@
-module github.com/cmacrae/kube-opa-violation-exporter
+module github.com/cmacrae/kove
 
 go 1.14
 

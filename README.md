@@ -1,28 +1,28 @@
 <p align="center">
-  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/cmacrae/kube-opa-violation-exporter.svg?color=a6dcef" alt="License Badge">
+  <a href="https://github.com/cmacrae/kove/blob/master/LICENSE">
+    <img src="https://img.shields.io/github/license/cmacrae/kove.svg?color=a6dcef" alt="License Badge">
   </a>
-  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/compare/v0.1.0...HEAD">
-    <img src="https://img.shields.io/github/commits-since/cmacrae/kube-opa-violation-exporter/latest.svg?color=ea907a" alt="Version Badge">
+  <a href="https://github.com/cmacrae/kove/compare/v0.1.0...HEAD">
+    <img src="https://img.shields.io/github/commits-since/cmacrae/kove/latest.svg?color=ea907a" alt="Version Badge">
   </a>
-  <a href="https://github.com/cmacrae/kube-opa-violation-exporter/projects/1">
+  <a href="https://github.com/cmacrae/kove/projects/1">
     <img src="https://img.shields.io/badge/Project-tasks-7fdbda.svg?logo=trello" alt="GitHub Project Badge">
   </a>
-  <a href="https://goreportcard.com/report/github.com/cmacrae/kube-opa-violation-exporter">
-    <img src="https://goreportcard.com/badge/github.com/cmacrae/kube-opa-violation-exporter" alt="Go Report Card">
+  <a href="https://goreportcard.com/report/github.com/cmacrae/kove">
+    <img src="https://goreportcard.com/badge/github.com/cmacrae/kove" alt="Go Report Card">
   </a>
 </p>
 <p align="center">
-  <a href="https://github.com/users/cmacrae/packages/container/package/kube-opa-violation-exporter">
+  <a href="https://github.com/users/cmacrae/packages/container/package/kove">
     <img src="https://img.shields.io/badge/GHCR-image-87DCC0.svg?logo=GitHub" alt="GHCR Badge">
   </a>
-  <a href="https://hub.docker.com/r/cmacrae/kube-opa-violation-exporter">
+  <a href="https://hub.docker.com/r/cmacrae/kove">
     <img src="https://img.shields.io/badge/DockerHub-image-2496ED.svg?logo=Docker" alt="DockerHub Badge">
   </a>
   <a href="https://opencontainers.org/">
     <img src="https://img.shields.io/badge/OCI-compliant-262261.svg?logo=open-containers-initiative" alt="OCI Badge">
   </a>
-  <a href="https://charts.cmacr.ae/#kube-opa-violation-exporter">
+  <a href="https://charts.cmacr.ae/#kove">
     <img src="https://img.shields.io/badge/Helm-chart-277A9F.svg?logo=Helm" alt="Helm Badge">
   </a>
   <a href="https://snyk.io">
@@ -30,7 +30,7 @@
   </a>
 </p>
 
-# kube-opa-violation-exporter
+# kove
 Watch your in cluster Kubernetes manifests for OPA policy violations and export them as Prometheus metrics
 
 ## About
@@ -38,11 +38,13 @@ Watch your in cluster Kubernetes manifests for OPA policy violations and export 
 allows for [admission control](https://www.openpolicyagent.org/docs/latest/kubernetes-introduction/#how-does-it-work-with-plain-opa-and-kube-mgmt) of Kubernetes
 manifests being submitted to the API. This is really nice and allows administrators to control the manifests coming in as fine-grained as they please.  
 
-However, administrators may not always want to take direct action (such as denial) on manifests arriving at the API. This is where kube-opa-violation-exporter comes in.  
+However, administrators may not always want to take direct action (such as denial) on manifests arriving at the API. This is where kove comes in.  
 It allows administrators of Kubernetes clusters to define [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) policies that they want to flag violations for by exposing a [Prometheus](https://prometheus.io/) metric.  
 
 Some example use cases include monitoring the use of deprecated APIs, unwanted docker images, or container vars containing strings like `API_KEY`, etc.  
 Administrators can craft dashboards or alerts when such conditions are observed to better expose this information to users.
+
+kove is built on an [informer](https://pkg.go.dev/k8s.io/client-go/informers) model, rather than admission control - so, it works on any existing objects in your cluster, instead of evaluating them when they arrive at the API (upon create/update). This means it'll expose policy violators that may otherwise go unnoticed if they're not updated often.
 
 ## Metrics
 | Metric                                 | Description                                                                                                                                              |
