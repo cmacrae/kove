@@ -105,8 +105,8 @@ objects:
 | `regoQuery`      | `data[_].main` | The Rego query to read evaluation results from. This should match the expression in your policy that surfaces violation data                         |
 | `policies`       | none           | A list of files/directories containing Rego policies to evaluate objects against                                                                     |
 | `objects`        | none           | A list of [GroupVersionResource](https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime/schema#GroupVersionResource) expressions to observe and evaluate. If empty **all** object kinds will be evaluated (apart from those defined in `ignoreKinds`) |
-| `ignoreKinds`    | `[ apiservice, endpoint, endpoints, endpointslice, event, flowschema, lease, limitrange, namespace, prioritylevelconfiguration, replicationcontroller, runtimeclass ]` | A list of object kinds to ignore for evaluation |
-| `ignoreDifferingPaths` | `[ metadata/resourceVersion, metadata/managedFields/0/time, status/observedGeneration ]` | A list of JSON paths to ignore for reevaluation when a change in the monitored object is observed |
+| `ignoreKinds`    | `[`<br>`apiservice`<br>`endpoint`<br>`endpoints`<br>`endpointslice`<br>`event`<br>`flowschema`<br>`lease`<br>`limitrange`<br>`namespace`<br>`prioritylevelconfiguration`<br>`replicationcontroller`<br>`runtimeclass`<br>`]` | A list of object kinds to ignore for evaluation |
+| `ignoreDifferingPaths` | `[`<br>`metadata/resourceVersion`<br>`metadata/managedFields/0/time`<br>`status/observedGeneration`<br>`]` | A list of JSON paths to ignore for reevaluation when a change in the monitored object is observed |
 
 The above example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace, but ignore child objects, yielding its results from the `data.pkgname.blah` expression in the provided policy.  
 
