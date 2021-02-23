@@ -66,7 +66,7 @@ kove is built on an [informer](https://pkg.go.dev/k8s.io/client-go/informers) mo
 | `config` | `""`    | Path to the config file. If not set, this will look for the file `config.yaml` in the current directory |
 
 #### `config`
-Configuration of the exporter is very simple at the moment. A YAML manifest can be provided in the following format to describe how and what you want to watch for evaluation:
+A YAML manifest can be provided in the following format to describe how and what you want to watch for evaluation:
 ```yaml
 namespace: default
 ignoreChildren: true
