@@ -1,4 +1,7 @@
 <p align="center">
+  <img src="assets/logo.png" alt="kove logo">
+</p>
+<p align="center">
   <a href="https://github.com/cmacrae/kove/blob/master/LICENSE">
     <img src="https://img.shields.io/github/license/cmacrae/kove.svg?color=a6dcef" alt="License Badge">
   </a>
@@ -30,7 +33,7 @@
   </a>
 </p>
 
-# kove
+#
 Watch your in cluster Kubernetes manifests for OPA policy violations and export them as Prometheus metrics
 
 ## About
