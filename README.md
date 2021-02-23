@@ -55,6 +55,9 @@ kove is built on an [informer](https://pkg.go.dev/k8s.io/client-go/informers) mo
 A good example built on top of kove is the [kove-deprecations Helm Chart](https://artifacthub.io/packages/helm/cmacrae/kove-deprecations).  
 It provides metrics for objects using APIs, annotations, and other such properties which are considered (or, soon to be) deprecated.
 
+Simple alerts or Grafana dashboards can then be built for an overview:
+![Grafana Deprecations Example](assets/grafana_deprecations_example.png)
+
 This grants administrators automated visibility over the objects in their cluster that meet such criteria, which in turn allows for easier preparation of cluster upgrades and alignment with best practices.
 
 Take a look at [the `policies/` directory](https://github.com/cmacrae/helm-charts/tree/master/charts/kove-deprecations/policies) (heavily based on the policies from [swade1987/deprek8ion](https://github.com/swade1987/deprek8ion)).
