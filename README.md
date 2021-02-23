@@ -25,7 +25,7 @@
   <a href="https://opencontainers.org/">
     <img src="https://img.shields.io/badge/OCI-compliant-262261.svg?logo=open-containers-initiative" alt="OCI Badge">
   </a>
-  <a href="https://charts.cmacr.ae/#kove">
+  <a href="https://artifacthub.io/packages/helm/cmacrae/kove">
     <img src="https://img.shields.io/badge/Helm-chart-277A9F.svg?logo=Helm" alt="Helm Badge">
   </a>
   <a href="https://snyk.io">
@@ -34,7 +34,8 @@
 </p>
 
 #
-Watch your in cluster Kubernetes manifests for OPA policy violations and export them as Prometheus metrics
+Watch your in cluster Kubernetes manifests for OPA policy violations and export them as Prometheus metrics.  
+Craft alerts & dashboards based on the structured data of the objects live in your environment(s).
 
 ## About
 [Open Policy Agent](https://www.openpolicyagent.org/) provide the fearsome-but-trustworthy  [gatekeeper](https://github.com/open-policy-agent/gatekeeper), which
@@ -49,12 +50,21 @@ Administrators can craft dashboards or alerts when such conditions are observed 
 
 kove is built on an [informer](https://pkg.go.dev/k8s.io/client-go/informers) model, rather than admission control - so, it works on any existing objects in your cluster, instead of evaluating them when they arrive at the API (upon create/update). This means it'll expose policy violators that may otherwise go unnoticed if they're not updated often.
 
+## Example Implementations
+### kove-deprecations
+A good example built on top of kove is the [kove-deprecations Helm Chart](https://artifacthub.io/packages/helm/cmacrae/kove-deprecations).  
+It provides metrics for objects using APIs, annotations, and other such properties which are considered (or, soon to be) deprecated.
+
+This grants administrators automated visibility over the objects in their cluster that meet such criteria, which in turn allows for easier preparation of cluster upgrades and alignment with best practices.
+
+Take a look at [the `policies/` directory](https://github.com/cmacrae/helm-charts/tree/master/charts/kove-deprecations/policies) (heavily based on the policies from [swade1987/deprek8ion](https://github.com/swade1987/deprek8ion)).
+
 ## Metrics
 | Metric                                 | Description                                                                                                                                              |
 |:---------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `opa_policy_violation`                 | Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, and `ruleset` |
 | `opa_policy_violations_total`          | Total number of policy violations observed                                                                                                               |
-| `opa_policy_violations_resolved_total` | Total number of policy violation resolutions observed                                                                                                   |
+| `opa_policy_violations_resolved_total` | Total number of policy violation resolutions observed                                                                                                    |
 | `opa_object_evaluations_total`         | Total number object evaluations conducted                                                                                                                |
 
 ## Usage
@@ -147,5 +157,5 @@ bad[stuff] {
 
 If you have a test cluster (perhaps built on [kind](https://kind.sigs.k8s.io/)), you can try out the evaluation of [this policy](example/policies/bad-stuff.rego) against [a violating Deployment](example/violating-manifests/bad-stuff-deployment.yaml).
 
-## Deployment
-A Helm chart is available for easy deployment at https://charts.cmacr.ae (documentation coming soon!)
+## Deployment [![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cmacrae)](https://artifacthub.io/packages/search?page=1&repo=cmacrae&ts_query_web=kove)
+A Helm Chart is available on [Artifact HUB](https://artifacthub.io/packages/helm/cmacrae/kove) with accompanying implementation charts built on top of it, like [kove-deprecations](https://artifacthub.io/packages/helm/cmacrae/kove-deprecations)
