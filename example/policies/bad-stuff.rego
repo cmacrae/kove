@@ -5,7 +5,7 @@ labels["secure"] = ["nope"]
 
 # Kinds of objects we care about evaluating.
 # This isn't strictly necessary if you're satisfied with the 'objects' configuration
-# option for the exporter; it'll only watch what it's told.
+# option for kove; it'll only watch what it's told.
 kinds = ["Deployment", "StatefulSet", "DaemonSet"]
 
 bad[stuff] {

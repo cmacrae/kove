@@ -108,10 +108,10 @@ objects:
 | `ignoreKinds`    | `[`<br>`apiservice`<br>`endpoint`<br>`endpoints`<br>`endpointslice`<br>`event`<br>`flowschema`<br>`lease`<br>`limitrange`<br>`namespace`<br>`prioritylevelconfiguration`<br>`replicationcontroller`<br>`runtimeclass`<br>`]` | A list of object kinds to ignore for evaluation |
 | `ignoreDifferingPaths` | `[`<br>`metadata/resourceVersion`<br>`metadata/managedFields/0/time`<br>`status/observedGeneration`<br>`]` | A list of JSON paths to ignore for reevaluation when a change in the monitored object is observed |
 
-The above example configuration would instruct the exporter to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace, but ignore child objects, yielding its results from the `data.pkgname.blah` expression in the provided policy.  
+The above example configuration would instruct kove to monitor `apps/v1/Deployment`, `apps/v1/DaemonSet`, and `apps/v1/ReplicaSet` objects in the `default` namespace, but ignore child objects, yielding its results from the `data.pkgname.blah` expression in the provided policy.  
 
 #### `policies`
-There are some important semantics to understand when crafting your Rego policies for use with this exporter.  
+There are some important semantics to understand when crafting your Rego policies for use with kove.  
 The expression that you evaluate from your query must return structured data with the following fields:  
 - `Name`: The name of the object being evaluated
 - `Namespace`: The namespace in which the object you're evaluating resides
@@ -119,7 +119,7 @@ The expression that you evaluate from your query must return structured data wit
 - `ApiVersion`: The version of the Kubernetes API the object is using
 - `RuleSet`: A short description that describes why this is a violation
 
-The above data are provided by the exporter when it evaluates an object, with the exception of `RuleSet` which should be defined in the Rego expression.
+The above data are provided by kove when it evaluates an object, with the exception of `RuleSet` which should be defined in the Rego expression.
 For instance, if we were to evaluate the query `data.example.bad`, our policy may look something like [this](example/policies/bad-stuff.rego):
 
 ```rego
@@ -130,7 +130,7 @@ labels["secure"] = ["nope"]
 
 # Kinds of objects we care about evaluating.
 # This isn't strictly necessary if you're satisfied with the 'objects' configuration
-# option for the exporter; it'll only watch what it's told.
+# option for kove; it'll only watch what it's told.
 kinds = ["Deployment", "StatefulSet", "DaemonSet"]
 
 bad[stuff] {
