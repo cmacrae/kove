@@ -158,7 +158,8 @@ bad[stuff] {
 }
 ```
 
-If you have a test cluster (perhaps built on [kind](https://kind.sigs.k8s.io/)), you can try out the evaluation of [this policy](example/policies/bad-stuff.rego) against [a violating Deployment](example/violating-manifests/bad-stuff-deployment.yaml).
+If you have a test cluster (perhaps built on [kind](https://kind.sigs.k8s.io/)), you can try out the evaluation of [this policy](example/policies/bad-stuff.rego) against [a violating Deployment](example/violating-manifests/bad-stuff-deployment.yaml).  
+Check out more [`examples/`](examples).
 
 ## Deployment [![Artifact HUB](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/cmacrae)](https://artifacthub.io/packages/search?page=1&repo=cmacrae&ts_query_web=kove)
 A Helm Chart is available on [Artifact HUB](https://artifacthub.io/packages/helm/cmacrae/kove) with accompanying implementation charts built on top of it, like [kove-deprecations](https://artifacthub.io/packages/helm/cmacrae/kove-deprecations)
