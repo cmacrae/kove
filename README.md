@@ -63,12 +63,12 @@ This grants administrators automated visibility over the objects in their cluste
 Take a look at [the `policies/` directory](https://github.com/cmacrae/helm-charts/tree/master/charts/kove-deprecations/policies) (heavily based on the policies from [swade1987/deprek8ion](https://github.com/swade1987/deprek8ion)).
 
 ## Metrics
-| Metric                                 | Description                                                                                                                                              |
-|:---------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `opa_policy_violation`                 | Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, and `ruleset` |
-| `opa_policy_violations_total`          | Total number of policy violations observed                                                                                                               |
-| `opa_policy_violations_resolved_total` | Total number of policy violation resolutions observed                                                                                                    |
-| `opa_object_evaluations_total`         | Total number object evaluations conducted                                                                                                                |
+| Metric                                 | Description                                                                                                                                                     |
+|:---------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `opa_policy_violation`                 | Represents a Kubernetes object that violates the provided Rego expression. Includes the labels `name`, `namespace`, `kind`, `api_version`, `ruleset` and `data` |
+| `opa_policy_violations_total`          | Total number of policy violations observed                                                                                                                      |
+| `opa_policy_violations_resolved_total` | Total number of policy violation resolutions observed                                                                                                           |
+| `opa_object_evaluations_total`         | Total number object evaluations conducted                                                                                                                       |
 
 ## Usage
 `ConfigMap` objects containing the Rego policy/policies and the application configuration can be mounted to configure what you want to evaluate and how you want to evaluate it.
@@ -118,8 +118,9 @@ The expression that you evaluate from your query must return structured data wit
 - `Kind`: The kind of object being evaluated
 - `ApiVersion`: The version of the Kubernetes API the object is using
 - `RuleSet`: A short description that describes why this is a violation
+- `Data`: Additional arbitrary data you wish to expose about the object
 
-The above data are provided by kove when it evaluates an object, with the exception of `RuleSet` which should be defined in the Rego expression.
+The above data are provided by kove when it evaluates an object, with the exception of `RuleSet` & `Data` which should be defined in the Rego expression.
 For instance, if we were to evaluate the query `data.example.bad`, our policy may look something like [this](example/policies/bad-stuff.rego):
 
 ```rego
@@ -154,6 +155,7 @@ bad[stuff] {
 		"Kind": r.kind,
 		"ApiVersion": r.apiVersion,
 		"RuleSet": "Insecure object", # Explain why this is a violation
+		"Data": r.metadata.annotations["something"] # Additional arbitrary information
 	}
 }
 ```

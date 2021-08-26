@@ -29,5 +29,6 @@ bad[stuff] {
 		"Kind": r.kind,
 		"ApiVersion": r.apiVersion,
 		"RuleSet": "Insecure object", # Explain why this is a violation
+		"Data": r.metadata.annotations.something, # Additional arbitrary information
 	}
 }

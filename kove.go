@@ -30,6 +30,7 @@ var (
 	configPath *string
 	conf       *config
 	ruleSet    string
+	data       string
 
 	// Metric type we serve to surface offending objects
 	violation = prometheus.NewGaugeVec(
@@ -37,7 +38,7 @@ var (
 			Name: "opa_policy_violation",
 			Help: "Kubernetes object violating policy evaluation.",
 		},
-		[]string{"name", "namespace", "kind", "api_version", "ruleset"},
+		[]string{"name", "namespace", "kind", "api_version", "ruleset", "data"},
 	)
 
 	totalViolations = prometheus.NewCounter(
@@ -238,7 +239,7 @@ func deleteMetric(o *unstructured.Unstructured) {
 	kind := o.GetKind()
 	api := o.GetAPIVersion()
 
-	violation.DeleteLabelValues(name, namespace, kind, api, ruleSet)
+	violation.DeleteLabelValues(name, namespace, kind, api, ruleSet, data)
 }
 
 // legitimateChange inspects a diff.Changelog and reports if its a collection of
@@ -305,14 +306,16 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 			for _, i := range e.Value.([]interface{}) {
 				m := i.(map[string]interface{})
 				ruleSet = m["RuleSet"].(string) // Record globally so we can reference elsewhere
+				data = m["Data"].(string)       // Record globally so we can reference elsewhere
 				vio = true
-				klog.InfoS("violation observed", strings.ToLower(obj.GetKind()), klog.KObj(obj), "ruleset", m["RuleSet"].(string))
+				klog.InfoS("violation observed", strings.ToLower(obj.GetKind()), klog.KObj(obj), "ruleset", ruleSet, "data", data)
 				violation.WithLabelValues(
 					m["Name"].(string),
 					m["Namespace"].(string),
 					m["Kind"].(string),
 					m["ApiVersion"].(string),
 					ruleSet,
+					data,
 				).Set(1)
 
 				// Record the violation in the total counter
