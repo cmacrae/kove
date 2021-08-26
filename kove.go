@@ -305,8 +305,15 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 		for _, e := range r.Expressions {
 			for _, i := range e.Value.([]interface{}) {
 				m := i.(map[string]interface{})
-				ruleSet = m["RuleSet"].(string) // Record globally so we can reference elsewhere
-				data = m["Data"].(string)       // Record globally so we can reference elsewhere
+
+				if _, ok := m["RuleSet"]; ok {
+					ruleSet = m["RuleSet"].(string) // Record globally so we can reference elsewhere
+				}
+
+				if _, ok := m["Data"]; ok {
+					data = m["Data"].(string) // Record globally so we can reference elsewhere
+				}
+
 				vio = true
 				klog.InfoS("violation observed", strings.ToLower(obj.GetKind()), klog.KObj(obj), "ruleset", ruleSet, "data", data)
 				violation.WithLabelValues(
