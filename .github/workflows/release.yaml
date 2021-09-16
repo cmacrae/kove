@@ -109,3 +109,5 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ env.RELEASE_VERSION }}
+          body: |
+            [Changelog](https://github.com/cmacrae/kove/blob/master/CHANGELOG.md)
