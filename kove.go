@@ -245,15 +245,21 @@ func deleteMetric(o *unstructured.Unstructured) {
 // legitimateChange inspects a diff.Changelog and reports if its a collection of
 // kubernetes object changes that should be considered legitimate
 func legitimateChange(cl diff.Changelog) bool {
+	if len(cl) == 0 {
+		return false
+	}
+
 	var ignorable int
 	for _, v := range cl {
 		if v.Type == "update" && contains(conf.IgnoreDifferingPaths, strings.Join(v.Path, "/")) {
 			ignorable++
 		}
-		if len(cl) == ignorable {
-			return false
-		}
 	}
+
+	if len(cl) == ignorable {
+		return false
+	}
+
 	return true
 }
 
