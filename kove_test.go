@@ -11,6 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
+var (
+	emptyMap = make(map[string]string)
+)
+
 func TestContains(t *testing.T) {
 	tests := map[string]struct {
 		input1 []string
@@ -38,18 +42,18 @@ func TestLegitimateChange(t *testing.T) {
 		want        bool
 	}{
 		"same resource": {
-			oldResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1"),
-			newResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1"),
+			oldResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", emptyMap, emptyMap),
+			newResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", emptyMap, emptyMap),
 			want:        false,
 		},
 		"rename": {
-			oldResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1"),
-			newResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test2", "2"),
+			oldResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", emptyMap, emptyMap),
+			newResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test2", "2", emptyMap, emptyMap),
 			want:        true,
 		},
 		"only resource version": {
-			oldResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1"),
-			newResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "2"),
+			oldResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", emptyMap, emptyMap),
+			newResource: newUnstructured("extensions/v1beta1", "deployment", "test", "test", "2", emptyMap, emptyMap),
 			want:        false,
 		},
 	}
@@ -68,29 +72,35 @@ func TestLegitimateChange(t *testing.T) {
 }
 
 func TestEvaluate(t *testing.T) {
+	annotationsTeam := map[string]string{"company.domain/team": "test"}
+	oldChartLabel := map[string]string{"helm.sh/chart": "specific-chart-name-3.0.0"}
+
 	tests := map[string]struct {
 		obj      *unstructured.Unstructured
 		existing bool
 		want     int
 	}{
 		"success": {
-			obj:      newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1"),
+			obj:      newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel),
 			existing: false,
 			want:     1,
 		},
 	}
 
+	cp := "example/config/config.yaml"
+	configPath = &cp
+	conf = getConfig()
+
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			// TODO - Get evaluate working
 			evaluate(tc.obj, tc.existing)
 			got := testutil.ToFloat64(violation)
-			require.Equal(t, tc.want, got)
+			require.Equal(t, tc.want, int(got))
 		})
 	}
 }
 
-func newUnstructured(apiVersion, kind, namespace, name, resourceVersion string) *unstructured.Unstructured {
+func newUnstructured(apiVersion, kind, namespace, name, resourceVersion string, annotations, labels map[string]string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": apiVersion,
@@ -99,6 +109,8 @@ func newUnstructured(apiVersion, kind, namespace, name, resourceVersion string) 
 				"namespace":       namespace,
 				"name":            name,
 				"resourceVersion": resourceVersion,
+				"annotations":     annotations,
+				"labels":          labels,
 			},
 			"spec": "test",
 		},

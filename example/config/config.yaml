@@ -1,6 +1,6 @@
 namespace: default
 ignoreChildren: true
-regoQuery: "data[_].bad"
+regoQuery: "data[_].main"
 policies:
   - example/policies
 objects:
