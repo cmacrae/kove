@@ -74,16 +74,22 @@ func TestLegitimateChange(t *testing.T) {
 func TestEvaluate(t *testing.T) {
 	annotationsTeam := map[string]string{"company.domain/team": "test"}
 	oldChartLabel := map[string]string{"helm.sh/chart": "specific-chart-name-3.0.0"}
+	newChartLabel := map[string]string{"helm.sh/chart": "specific-chart-name-4.0.0"}
 
 	tests := map[string]struct {
 		obj      *unstructured.Unstructured
 		existing bool
 		want     int
 	}{
-		"success": {
+		"failure": {
 			obj:      newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel),
 			existing: false,
 			want:     1,
+		},
+		"success": {
+			obj:      newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel),
+			existing: false,
+			want:     0,
 		},
 	}
 
@@ -94,8 +100,21 @@ func TestEvaluate(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			evaluate(tc.obj, tc.existing)
-			got := testutil.ToFloat64(violation)
+
+			// Handle no violation (i.e. no metric increment)
+			metricCount := testutil.CollectAndCount(violation)
+			var got float64
+			if metricCount == 0 {
+				got = float64(0)
+			} else {
+				// Fails if metric has not been incremented
+				got = testutil.ToFloat64(violation)
+			}
+
 			require.Equal(t, tc.want, int(got))
+
+			// Reset counter for next test
+			violation.Reset()
 		})
 	}
 }
