@@ -15,6 +15,12 @@ var (
 	emptyMap = make(map[string]string)
 )
 
+func initConfig() {
+	cp := "example/config/config.yaml"
+	configPath = &cp
+	conf = getConfig()
+}
+
 func TestContains(t *testing.T) {
 	tests := map[string]struct {
 		input1 []string
@@ -58,9 +64,7 @@ func TestLegitimateChange(t *testing.T) {
 		},
 	}
 
-	cp := "example/config/config.yaml"
-	configPath = &cp
-	conf = getConfig()
+	initConfig()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -77,25 +81,33 @@ func TestEvaluate(t *testing.T) {
 	newChartLabel := map[string]string{"helm.sh/chart": "specific-chart-name-4.0.0"}
 
 	tests := map[string]struct {
-		obj      *unstructured.Unstructured
-		existing bool
-		want     int
+		obj        *unstructured.Unstructured
+		existing   bool
+		resetCount bool // Should the violation counter metric be reset after the test run.
+		want       int
 	}{
-		"failure": {
-			obj:      newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel),
-			existing: false,
-			want:     1,
-		},
 		"success": {
-			obj:      newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel),
-			existing: false,
-			want:     0,
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel),
+			existing:   false,
+			resetCount: false,
+			want:       0,
+		},
+		"failure": {
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel),
+			existing:   false,
+			resetCount: false,
+			want:       1,
+		},
+		// Should remove series from previous run
+		"success updating previous": {
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel),
+			existing:   true,
+			resetCount: true,
+			want:       0,
 		},
 	}
 
-	cp := "example/config/config.yaml"
-	configPath = &cp
-	conf = getConfig()
+	initConfig()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -113,8 +125,10 @@ func TestEvaluate(t *testing.T) {
 
 			require.Equal(t, tc.want, int(got))
 
-			// Reset counter for next test
-			violation.Reset()
+			if tc.resetCount {
+				// Reset counter for next test
+				violation.Reset()
+			}
 		})
 	}
 }
