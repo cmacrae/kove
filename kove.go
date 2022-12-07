@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,6 +32,8 @@ var (
 	conf       *config
 	ruleSet    string
 	data       string
+
+	wg = new(sync.WaitGroup)
 
 	// Metric type we serve to surface offending objects
 	violation = prometheus.NewGaugeVec(
@@ -189,7 +192,11 @@ func onAdd(obj interface{}) {
 	kind := strings.ToLower(r.GetKind())
 
 	klog.InfoS("evaluating object", kind, klog.KObj(r))
+
+	// Allows tests to wait for backgrounded go routine to complete before checking result
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		if err := evaluate(r, false); err != nil {
 			klog.ErrorS(err, "unable to evaluate", kind, klog.KObj(r))
 		}

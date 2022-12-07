@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"time"
 
 	diff "github.com/r3labs/diff/v2"
 	"github.com/stretchr/testify/require"
@@ -161,7 +160,6 @@ func TestOnAdd(t *testing.T) {
 			resetCount: true,
 			want:       0,
 		},
-		// TODO - This is returning 0 for some reason
 		"add bad": {
 			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel, false),
 			resetCount: true,
@@ -179,9 +177,7 @@ func TestOnAdd(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			onAdd(tc.obj)
-			// TODO - This is to allow time for the routine created by onAdd to complete, but it is not reliable. Find a way of waiting for the routine to complete.
-			time.Sleep(time.Millisecond * 250)
-
+			wg.Wait()
 			got := getViolationMetric()
 
 			require.Equal(t, tc.want, got)
