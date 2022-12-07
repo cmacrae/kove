@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	diff "github.com/r3labs/diff/v2"
 	"github.com/stretchr/testify/require"
@@ -17,8 +16,6 @@ import (
 var (
 	emptyMap        = make(map[string]string)
 	annotationsTeam = map[string]string{"company.domain/team": "test"}
-	oldChartLabel   = map[string]string{"helm.sh/chart": "specific-chart-name-3.0.0"}
-	newChartLabel   = map[string]string{"helm.sh/chart": "specific-chart-name-4.0.0"}
 )
 
 func initConfig() {
