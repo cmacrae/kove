@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	diff "github.com/r3labs/diff/v2"
 	"github.com/stretchr/testify/require"
@@ -110,20 +112,20 @@ func TestEvaluate(t *testing.T) {
 		want       int
 	}{
 		"success": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel, false),
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
 			existing:   false,
 			resetCount: false,
 			want:       0,
 		},
 		"failure": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel, false),
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
 			existing:   false,
 			resetCount: false,
 			want:       1,
 		},
 		// Should remove series from previous run
 		"success updating previous": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel, false),
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
 			existing:   true,
 			resetCount: true,
 			want:       0,
@@ -136,7 +138,7 @@ func TestEvaluate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			evaluate(tc.obj, tc.existing)
 
-			got := getViolationMetric()
+			got := getNumberOfViolations()
 
 			require.Equal(t, tc.want, got)
 
@@ -156,17 +158,17 @@ func TestOnAdd(t *testing.T) {
 		want       int
 	}{
 		"add good": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, newChartLabel, false),
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
 			resetCount: true,
 			want:       0,
 		},
 		"add bad": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel, false),
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
 			resetCount: true,
 			want:       1,
 		},
 		"add bad child object": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, oldChartLabel, true),
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), true),
 			resetCount: true,
 			want:       0,
 		},
@@ -178,7 +180,7 @@ func TestOnAdd(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			onAdd(tc.obj)
 			wg.Wait()
-			got := getViolationMetric()
+			got := getNumberOfViolations()
 
 			require.Equal(t, tc.want, got)
 
@@ -191,25 +193,102 @@ func TestOnAdd(t *testing.T) {
 }
 
 func TestOnUpdate(t *testing.T) {
+	tests := map[string]struct {
+		oldObj     *unstructured.Unstructured
+		newObj     *unstructured.Unstructured
+		resetCount bool // Should the violation counter metric be reset after the test run.
+		want       int
+	}{
+		"both good": {
+			oldObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
+			newObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.1"), false),
+			resetCount: true,
+			want:       0,
+		},
+		"good then bad": {
+			oldObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
+			newObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			resetCount: true,
+			want:       1,
+		},
+		// TODO - This test fails due to old metric not being tidied up
+		// The result ends up being 2 instead of 1
+		"both bad": {
+			oldObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			newObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.1"), false),
+			resetCount: true,
+			want:       1,
+		},
+		// TODO - This test fails due to old metric not being tidied up
+		// The result ends up being 1 instead of 0
+		"bad then good": {
+			oldObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			newObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
+			resetCount: true,
+			want:       0,
+		},
+	}
 
+	initConfig()
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			onAdd(tc.oldObj)
+			wg.Wait()
+
+			onUpdate(tc.oldObj, tc.newObj)
+			wg.Wait()
+			got := getNumberOfViolations()
+
+			require.Equal(t, tc.want, got)
+
+			if tc.resetCount {
+				// Reset counter for next test
+				violation.Reset()
+			}
+		})
+	}
 }
 
 func TestOnDelete(t *testing.T) {
-
-}
-
-func getViolationMetric() int {
-	// Handle no violation (i.e. no metric increment)
-	metricCount := testutil.CollectAndCount(violation)
-	var got float64
-	if metricCount == 0 {
-		got = float64(0)
-	} else {
-		// Fails if metric has not been incremented
-		got = testutil.ToFloat64(violation)
+	tests := map[string]struct {
+		obj        *unstructured.Unstructured
+		resetCount bool // Should the violation counter metric be reset after the test run.
+		want       int
+	}{
+		// TODO - This test fails due to old metric not being tidied up
+		// The result ends up being 1 instead of 0
+		"delete bad": {
+			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			resetCount: true,
+			want:       0,
+		},
 	}
 
-	return int(got)
+	initConfig()
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			onAdd(tc.obj)
+			wg.Wait()
+
+			onDelete(tc.obj)
+			wg.Wait()
+
+			got := getNumberOfViolations()
+
+			require.Equal(t, tc.want, got)
+
+			if tc.resetCount {
+				// Reset counter for next test
+				violation.Reset()
+			}
+		})
+	}
+}
+
+func getNumberOfViolations() int {
+	return testutil.CollectAndCount(violation)
 }
 
 func newUnstructured(apiVersion, kind, namespace, name, resourceVersion string, annotations, labels map[string]string, setOwnerRef bool) *unstructured.Unstructured {
@@ -240,4 +319,8 @@ func newUnstructured(apiVersion, kind, namespace, name, resourceVersion string, 
 	}
 
 	return &ret
+}
+
+func getChartLabels(vers string) map[string]string {
+	return map[string]string{"helm.sh/chart": fmt.Sprintf("specific-chart-name-%s", vers)}
 }

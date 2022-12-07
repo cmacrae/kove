@@ -219,7 +219,11 @@ func onUpdate(oldObj, newObj interface{}) {
 		kind := strings.ToLower(r.GetKind())
 
 		klog.InfoS("change observed, reevaluating object", kind, klog.KObj(r))
+
+		// Allows tests to wait for backgrounded go routine to complete before checking result
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			if err := evaluate(r, true); err != nil {
 				klog.ErrorS(err, "unable to evaluate", kind, klog.KObj(r))
 			}
