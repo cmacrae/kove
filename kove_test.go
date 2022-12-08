@@ -253,16 +253,12 @@ func TestOnDelete(t *testing.T) {
 		resetCount bool // Should the violation counter metric be reset after the test run.
 		want       int
 	}{
-		// TODO - This test fails due to old metric not being tidied up
-		// The result ends up being 1 instead of 0
 		"delete bad": {
 			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
 			resetCount: true,
 			want:       0,
 		},
 	}
-
-	initConfig()
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -282,6 +278,87 @@ func TestOnDelete(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDeleteAllMetricsForObject(t *testing.T) {
+	tests := map[string]struct {
+		obj         *unstructured.Unstructured
+		metricCount int  // Number of metrics to create
+		resetCount  bool // Should the violation counter metric be reset after the test run.
+		want        int
+	}{
+		"delete with single": {
+			obj:         newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			metricCount: 1,
+			resetCount:  true,
+			want:        0,
+		},
+		"delete with multiple for same object": {
+			obj:         newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			metricCount: 4,
+			resetCount:  true,
+			want:        0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			metricsToCreate := tc.metricCount
+			for metricsToCreate != 0 {
+				registerViolation(
+					tc.obj.GetName(),
+					tc.obj.GetNamespace(),
+					tc.obj.GetKind(),
+					tc.obj.GetAPIVersion(),
+					fmt.Sprintf("ruleset-%d", metricsToCreate),
+					fmt.Sprintf("data-%d", metricsToCreate),
+				)
+				metricsToCreate -= 1
+			}
+
+			deleteAllMetricsForObject(tc.obj)
+			got := getNumberOfViolations()
+			require.Equal(t, tc.want, got)
+
+			if tc.resetCount {
+				// Reset counter for next test
+				violation.Reset()
+			}
+		})
+	}
+
+	t.Run("delete with multiple for different objects", func(t *testing.T) {
+		objToDelete := newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false)
+		otherObj := newUnstructured("extensions/v1beta1", "deployment", "other", "other", "1", annotationsTeam, getChartLabels("3.0.0"), false)
+
+		i := 0
+		metricsToCreate := 3
+		for i < metricsToCreate {
+			registerViolation(
+				objToDelete.GetName(),
+				objToDelete.GetNamespace(),
+				objToDelete.GetKind(),
+				objToDelete.GetAPIVersion(),
+				fmt.Sprintf("ruleset-%d", i),
+				fmt.Sprintf("data-%d", i),
+			)
+			registerViolation(
+				otherObj.GetName(),
+				otherObj.GetNamespace(),
+				otherObj.GetKind(),
+				otherObj.GetAPIVersion(),
+				fmt.Sprintf("ruleset-%d", i),
+				fmt.Sprintf("data-%d", i),
+			)
+			i += 1
+		}
+
+		deleteAllMetricsForObject(objToDelete)
+		got := getNumberOfViolations()
+		require.Equal(t, metricsToCreate, got)
+		violation.Reset()
+
+	})
 }
 
 func getNumberOfViolations() int {

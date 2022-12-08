@@ -238,7 +238,19 @@ func onDelete(obj interface{}) {
 		return
 	}
 	klog.InfoS("object deleted", r.GetKind(), klog.KObj(r))
-	deleteMetric(r)
+	deleteAllMetricsForObject(r)
+}
+
+// deleteAllMetricsForObjects removes and series associated with a kubernetes object.
+// We do not check the result or truthiness intetntionally, as this function
+// may be called for an object with no associated metric.
+func deleteAllMetricsForObject(obj *unstructured.Unstructured) {
+	violation.DeletePartialMatch(prometheus.Labels{
+		"name":        obj.GetName(),
+		"namespace":   obj.GetNamespace(),
+		"kind":        obj.GetKind(),
+		"api_version": obj.GetAPIVersion(),
+	})
 }
 
 // deleteMetric deletes metrics associated with a kubernetes object.
@@ -333,17 +345,14 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 
 				vio = true
 				klog.InfoS("violation observed", strings.ToLower(obj.GetKind()), klog.KObj(obj), "ruleset", ruleSet, "data", data)
-				violation.WithLabelValues(
+				registerViolation(
 					m["Name"].(string),
 					m["Namespace"].(string),
 					m["Kind"].(string),
 					m["ApiVersion"].(string),
 					ruleSet,
 					data,
-				).Set(1)
-
-				// Record the violation in the total counter
-				totalViolations.Inc()
+				)
 			}
 		}
 	}
@@ -360,6 +369,13 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 	totalObjectEvaluations.Inc()
 
 	return nil
+}
+
+func registerViolation(name, namespace, kind, apiVersion, ruleset, data string) {
+	violation.WithLabelValues(name, namespace, kind, apiVersion, ruleset, data).Set(1)
+
+	// Record the violation in the total counter
+	totalViolations.Inc()
 }
 
 func getRegisteredResources(discover *discovery.DiscoveryClient) ([]schema.GroupVersionResource, error) {
