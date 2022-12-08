@@ -103,29 +103,22 @@ func TestHasOwnerRefs(t *testing.T) {
 
 func TestEvaluate(t *testing.T) {
 	tests := map[string]struct {
-		obj        *unstructured.Unstructured
-		existing   bool
-		resetCount bool // Should the violation counter metric be reset after the test run.
-		want       int
+		obj                *unstructured.Unstructured
+		previousViolations int
+		resetCount         bool // Should the violation counter metric be reset after the test run.
+		want               int
 	}{
 		"success": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
-			existing:   false,
-			resetCount: false,
-			want:       0,
+			obj:                newUnstructured("extensions/v1beta1", "deployment", "testEvaluate", "testEvaluate", "1", annotationsTeam, getChartLabels("4.0.0"), false),
+			previousViolations: 0,
+			resetCount:         true,
+			want:               0,
 		},
 		"failure": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
-			existing:   false,
-			resetCount: false,
-			want:       1,
-		},
-		// Should remove series from previous run
-		"success updating previous": {
-			obj:        newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
-			existing:   true,
-			resetCount: true,
-			want:       0,
+			obj:                newUnstructured("extensions/v1beta1", "deployment", "testEvaluate", "testEvaluate", "1", annotationsTeam, getChartLabels("3.0.0"), false),
+			previousViolations: 0,
+			resetCount:         true,
+			want:               1,
 		},
 	}
 
@@ -133,16 +126,16 @@ func TestEvaluate(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			evaluate(tc.obj, tc.existing)
+			evaluate(tc.obj, tc.previousViolations)
 
 			got := getNumberOfViolations()
-
-			require.Equal(t, tc.want, got)
 
 			if tc.resetCount {
 				// Reset counter for next test
 				violation.Reset()
 			}
+
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -179,12 +172,12 @@ func TestOnAdd(t *testing.T) {
 			wg.Wait()
 			got := getNumberOfViolations()
 
-			require.Equal(t, tc.want, got)
-
 			if tc.resetCount {
 				// Reset counter for next test
 				violation.Reset()
 			}
+
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -208,16 +201,12 @@ func TestOnUpdate(t *testing.T) {
 			resetCount: true,
 			want:       1,
 		},
-		// TODO - This test fails due to old metric not being tidied up
-		// The result ends up being 2 instead of 1
 		"both bad": {
 			oldObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
 			newObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.1"), false),
 			resetCount: true,
 			want:       1,
 		},
-		// TODO - This test fails due to old metric not being tidied up
-		// The result ends up being 1 instead of 0
 		"bad then good": {
 			oldObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("3.0.0"), false),
 			newObj:     newUnstructured("extensions/v1beta1", "deployment", "test", "test", "1", annotationsTeam, getChartLabels("4.0.0"), false),
@@ -237,12 +226,12 @@ func TestOnUpdate(t *testing.T) {
 			wg.Wait()
 			got := getNumberOfViolations()
 
-			require.Equal(t, tc.want, got)
-
 			if tc.resetCount {
 				// Reset counter for next test
 				violation.Reset()
 			}
+
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -270,12 +259,12 @@ func TestOnDelete(t *testing.T) {
 
 			got := getNumberOfViolations()
 
-			require.Equal(t, tc.want, got)
-
 			if tc.resetCount {
 				// Reset counter for next test
 				violation.Reset()
 			}
+
+			require.Equal(t, tc.want, got)
 		})
 	}
 }
@@ -318,12 +307,13 @@ func TestDeleteAllMetricsForObject(t *testing.T) {
 
 			deleteAllMetricsForObject(tc.obj)
 			got := getNumberOfViolations()
-			require.Equal(t, tc.want, got)
 
 			if tc.resetCount {
 				// Reset counter for next test
 				violation.Reset()
 			}
+
+			require.Equal(t, tc.want, got)
 		})
 	}
 
@@ -355,9 +345,8 @@ func TestDeleteAllMetricsForObject(t *testing.T) {
 
 		deleteAllMetricsForObject(objToDelete)
 		got := getNumberOfViolations()
-		require.Equal(t, metricsToCreate, got)
 		violation.Reset()
-
+		require.Equal(t, metricsToCreate, got)
 	})
 }
 
