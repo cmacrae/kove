@@ -22,6 +22,6 @@ main[output] {
 		"Kind": input.kind,
 		"ApiVersion": input.apiVersion,
 		"RuleSet": sprintf("Chart version %s is lower than the minimum version %s", [vers, minimum_vers]),
-		"Data": input.metadata.annotations.["company.domain/team"], # Expose the owner
+		"Data": input.metadata.annotations["company.domain/team"] # Expose the owner
 	}
 }

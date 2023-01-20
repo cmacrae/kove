@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/prometheus/client_golang/prometheus"
@@ -31,6 +32,8 @@ var (
 	conf       *config
 	ruleSet    string
 	data       string
+
+	wg = new(sync.WaitGroup)
 
 	// Metric type we serve to surface offending objects
 	violation = prometheus.NewGaugeVec(
@@ -189,8 +192,12 @@ func onAdd(obj interface{}) {
 	kind := strings.ToLower(r.GetKind())
 
 	klog.InfoS("evaluating object", kind, klog.KObj(r))
+
+	// Allows tests to wait for backgrounded go routine to complete before checking result
+	wg.Add(1)
 	go func() {
-		if err := evaluate(r, false); err != nil {
+		defer wg.Done()
+		if err := evaluate(r, 0); err != nil {
 			klog.ErrorS(err, "unable to evaluate", kind, klog.KObj(r))
 		}
 	}()
@@ -208,12 +215,17 @@ func onUpdate(oldObj, newObj interface{}) {
 
 	// Without this, we see duplicate evaluations
 	if legitimateChange(objDiff) {
+		metricsRemoved := deleteAllMetricsForObject(oldObj.(*unstructured.Unstructured))
 		r := newObj.(*unstructured.Unstructured)
 		kind := strings.ToLower(r.GetKind())
 
 		klog.InfoS("change observed, reevaluating object", kind, klog.KObj(r))
+
+		// Allows tests to wait for backgrounded go routine to complete before checking result
+		wg.Add(1)
 		go func() {
-			if err := evaluate(r, true); err != nil {
+			defer wg.Done()
+			if err := evaluate(r, metricsRemoved); err != nil {
 				klog.ErrorS(err, "unable to evaluate", kind, klog.KObj(r))
 			}
 		}()
@@ -227,33 +239,39 @@ func onDelete(obj interface{}) {
 		return
 	}
 	klog.InfoS("object deleted", r.GetKind(), klog.KObj(r))
-	deleteMetric(r)
+	deleteAllMetricsForObject(r)
 }
 
-// deleteMetric deletes metrics associated with a kubernetes object.
+// deleteAllMetricsForObjects removes and series associated with a kubernetes object.
 // We do not check the result or truthiness intetntionally, as this function
 // may be called for an object with no associated metric.
-func deleteMetric(o *unstructured.Unstructured) {
-	name := o.GetName()
-	namespace := o.GetNamespace()
-	kind := o.GetKind()
-	api := o.GetAPIVersion()
-
-	violation.DeleteLabelValues(name, namespace, kind, api, ruleSet, data)
+func deleteAllMetricsForObject(obj *unstructured.Unstructured) int {
+	return violation.DeletePartialMatch(prometheus.Labels{
+		"name":        obj.GetName(),
+		"namespace":   obj.GetNamespace(),
+		"kind":        obj.GetKind(),
+		"api_version": obj.GetAPIVersion(),
+	})
 }
 
 // legitimateChange inspects a diff.Changelog and reports if its a collection of
 // kubernetes object changes that should be considered legitimate
 func legitimateChange(cl diff.Changelog) bool {
+	if len(cl) == 0 {
+		return false
+	}
+
 	var ignorable int
 	for _, v := range cl {
 		if v.Type == "update" && contains(conf.IgnoreDifferingPaths, strings.Join(v.Path, "/")) {
 			ignorable++
 		}
-		if len(cl) == ignorable {
-			return false
-		}
 	}
+
+	if len(cl) == ignorable {
+		return false
+	}
+
 	return true
 }
 
@@ -279,7 +297,7 @@ func hasOwnerRefs(obj *unstructured.Unstructured) bool {
 }
 
 // evaluate evaluates a kubernetes object against a rego policy
-func evaluate(obj *unstructured.Unstructured, existing bool) error {
+func evaluate(obj *unstructured.Unstructured, previousViolations int) error {
 	// Get our context
 	ctx := context.Background()
 
@@ -297,7 +315,7 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 	}
 
 	// Set up a var that indicates the presence of a violation
-	var vio bool
+	violations := 0
 
 	// Range the returned rego expressions in our resulting ruleset.
 	// Any violations will expose a Prometheus metric with labels providing object details
@@ -314,19 +332,16 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 					data = m["Data"].(string) // Record globally so we can reference elsewhere
 				}
 
-				vio = true
+				violations += 1
 				klog.InfoS("violation observed", strings.ToLower(obj.GetKind()), klog.KObj(obj), "ruleset", ruleSet, "data", data)
-				violation.WithLabelValues(
+				registerViolation(
 					m["Name"].(string),
 					m["Namespace"].(string),
 					m["Kind"].(string),
 					m["ApiVersion"].(string),
 					ruleSet,
 					data,
-				).Set(1)
-
-				// Record the violation in the total counter
-				totalViolations.Inc()
+				)
 			}
 		}
 	}
@@ -334,15 +349,23 @@ func evaluate(obj *unstructured.Unstructured, existing bool) error {
 	// If this is an existing object and no violation is found
 	// we delete the associated metric (if there is one... if not
 	// we just silently ignore it)
-	if existing && !vio {
+	resolvedViolations := previousViolations - violations
+	for resolvedViolations > 0 {
 		totalViolationsResolved.Inc()
-		deleteMetric(obj)
+		resolvedViolations -= 1
 	}
 
 	// Record the evaluation in the total counter
 	totalObjectEvaluations.Inc()
 
 	return nil
+}
+
+func registerViolation(name, namespace, kind, apiVersion, ruleset, data string) {
+	violation.WithLabelValues(name, namespace, kind, apiVersion, ruleset, data).Set(1)
+
+	// Record the violation in the total counter
+	totalViolations.Inc()
 }
 
 func getRegisteredResources(discover *discovery.DiscoveryClient) ([]schema.GroupVersionResource, error) {
