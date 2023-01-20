@@ -1,6 +1,7 @@
-FROM golang:1.17-alpine as builder
+FROM golang:1.19-alpine as builder
 RUN apk add --no-cache git ca-certificates && update-ca-certificates
 ENV UID=10001
+ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN adduser \
 	--disabled-password \
 	--gecos "" \
@@ -14,7 +15,8 @@ WORKDIR /kove
 COPY kove.go config.go go.mod go.sum /kove/
 RUN go mod download
 RUN go mod verify
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o kove
+RUN go test -v
+RUN go build -a -installsuffix cgo -o kove
 RUN chown -R kove:kove /kove
 
 FROM scratch
