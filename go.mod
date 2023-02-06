@@ -15,6 +15,7 @@ require (
 
 require (
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
+	github.com/RedHatInsights/strimzi-client-go v0.28.1 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -73,8 +74,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.26.1 // indirect
+	k8s.io/apiextensions-apiserver v0.23.6 // indirect
 	k8s.io/kube-openapi v0.0.0-20230118215034-64b6bb138190 // indirect
 	k8s.io/utils v0.0.0-20230115233650-391b47cb4029 // indirect
+	sigs.k8s.io/controller-runtime v0.11.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
