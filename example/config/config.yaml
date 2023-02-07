@@ -1,3 +1,4 @@
+namespace: default
 ignoreChildren: true
 regoQuery: "data[_].main"
 policies:
