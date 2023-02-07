@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	strimzi "github.com/RedHatInsights/strimzi-client-go/apis/kafka.strimzi.io/v1beta2"
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,6 +22,7 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
@@ -159,18 +161,7 @@ func main() {
 		klog.InfoS("monitoring all namespaces...")
 	}
 
-	// Grab an informer for each GVR outlined in our config
-	// Add generic event handlers for each informer and start them
-	klog.InfoS("starting informers...")
-	for _, obj := range toWatch {
-		o := factory.ForResource(obj)
-		klog.Infof("watching %s...", strings.TrimPrefix(strings.Join([]string{obj.Group, obj.Version, obj.Resource}, "/"), "/"))
-		o.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc:    onAdd,
-			DeleteFunc: onDelete,
-			UpdateFunc: onUpdate,
-		})
-	}
+	startInformers(toWatch, factory)
 
 	// Initiate a stop channel and start our factory with it
 	stopCh := make(chan struct{})
@@ -240,6 +231,31 @@ func onDelete(obj interface{}) {
 	}
 	klog.InfoS("object deleted", r.GetKind(), klog.KObj(r))
 	deleteAllMetricsForObject(r)
+}
+
+func startInformers(toWatch []schema.GroupVersionResource, factory dynamicinformer.DynamicSharedInformerFactory) {
+	// Grab an informer for each GVR outlined in our config
+	// Add generic event handlers for each informer and start them
+	klog.InfoS("starting informers...")
+	for _, obj := range toWatch {
+		var o informers.GenericInformer
+
+		// Check if we're watching a Strimzi resource type and if so use the
+		// the CRD definition in the WithResource call
+		if obj.Group == "kafka.strimzi.io" && obj.Version == "v1beta2" {
+			klog.Info("using Strimzi v1beta2 CRD resource type %s", obj.Resource)
+			o = factory.ForResource(strimzi.GroupVersion.WithResource(obj.Resource))
+		} else {
+			o = factory.ForResource(obj)
+		}
+
+		klog.Infof("watching %s...", strings.TrimPrefix(strings.Join([]string{obj.Group, obj.Version, obj.Resource}, "/"), "/"))
+		o.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+			AddFunc:    onAdd,
+			DeleteFunc: onDelete,
+			UpdateFunc: onUpdate,
+		})
+	}
 }
 
 // deleteAllMetricsForObjects removes and series associated with a kubernetes object.

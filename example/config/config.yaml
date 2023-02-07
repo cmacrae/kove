@@ -13,3 +13,6 @@ objects:
   - group: apps
     version: v1
     resource: replicasets
+  - group: kafka.strimzi.io
+    version: v1beta2
+    resource: kafkaconnects
