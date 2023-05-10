@@ -1,4 +1,4 @@
-FROM golang:1.19-alpine as builder
+FROM golang:1.20-alpine as builder
 RUN apk add --no-cache git ca-certificates && update-ca-certificates
 ENV UID=10001
 ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
