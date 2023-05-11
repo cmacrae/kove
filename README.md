@@ -5,7 +5,7 @@
   <a href="https://github.com/cmacrae/kove/blob/master/LICENSE">
     <img src="https://img.shields.io/github/license/cmacrae/kove.svg?color=a6dcef" alt="License Badge">
   </a>
-  <a href="https://github.com/cmacrae/kove/compare/v0.2.0...HEAD">
+  <a href="https://github.com/cmacrae/kove/compare/v0.2.1...HEAD">
     <img src="https://img.shields.io/github/commits-since/cmacrae/kove/latest.svg?color=ea907a" alt="Version Badge">
   </a>
   <a href="https://github.com/cmacrae/kove/projects/1">
